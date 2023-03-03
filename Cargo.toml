@@ -1,0 +1,10 @@
+[package]
+name = "beheader"
+authors = ["Christian Poveda <git@pvdrz.com>"]
+description = "A C preprocessor written in Rust."
+license = "MIT/Apache-2.0"
+repository = "https://github.com/pvdrz/beheader"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
