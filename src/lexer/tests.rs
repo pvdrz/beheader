@@ -22,7 +22,8 @@ fn tokenize_one(bytes: &[u8], kind: TokenKind, f: impl Fn(Lexer<'_>) -> super::R
             hi: bytes.len(),
         },
     };
-    assert!(rest.is_empty());
+    println!("Parsed token was: {:?}", token);
+    assert!(rest.is_empty(), "Remainder: {:?}", String::from_utf8_lossy(rest.rest));
     assert_eq!(expected_token, token);
 }
 
