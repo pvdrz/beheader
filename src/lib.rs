@@ -9,9 +9,17 @@ mod buffer;
 mod lexer;
 mod span;
 
+use std::{path::Path, io};
+
 use span::SourceMap;
 
 pub fn preprocess(source: &[u8]) {
     let map = SourceMap::default();
     map.tokenize_bytes(source);
+}
+
+pub fn preprocess_file<P: AsRef<Path>>(path: &P) -> io::Result<()> {
+    let map = SourceMap::default();
+    map.tokenize_file(path)?;
+    Ok(())
 }
