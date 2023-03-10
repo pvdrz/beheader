@@ -231,16 +231,16 @@ fn number(input: Lexer<'_>) -> Result<'_, Token> {
     let mut len = input.len();
 
     while let Some((i, byte)) = bytes.next() {
+        // A valid `pp-number` can be followed by a `.`, a `digit`, an `identifier-nondigit`, or it
+        // can also be followed by `e`, `E`, `p` or `P` immediately followed by a `sign`.
         match byte {
-            // A valid `pp-number` can be followed by a `.`, a `digit` or an `identifier-nondigit`.
-            byte if byte == b'.' || byte.is_ascii_digit() || is_ident_nondigit(byte) => {
+            // We do exponents first because the exponents are `identifier-nondigit`s.
+            b'e' | b'E' | b'p' | b'P' if matches!(bytes.peek(), Some((_, b'+' | b'-'))) => {
+                bytes.next().unwrap();
                 continue;
             }
-            // It can also be followed by `e`, `E`, `p` or `P` immediately followed by a `sign`.
-            b'e' | b'E' | b'p' | b'P' => {
-                if let Some((_, b'+' | b'-')) = bytes.next() {
-                    continue;
-                }
+            byte if byte == b'.' || byte.is_ascii_digit() || is_ident_nondigit(byte) => {
+                continue;
             }
             _ => {}
         }
