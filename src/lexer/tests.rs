@@ -23,8 +23,56 @@ fn tokenize_one(bytes: &[u8], kind: TokenKind, f: impl Fn(Lexer<'_>) -> super::R
         },
     };
     println!("Parsed token was: {:?}", token);
-    assert!(rest.is_empty(), "Remainder: {:?}", String::from_utf8_lossy(rest.rest));
+    assert!(
+        rest.is_empty(),
+        "Remainder: {:?}",
+        String::from_utf8_lossy(rest.rest)
+    );
     assert_eq!(expected_token, token);
+}
+
+#[test]
+fn header_q_chars() {
+    tokenize_one(b"<stdio.h>", TokenKind::Header, super::header);
+}
+
+#[test]
+fn header_h_chars() {
+    tokenize_one(
+        b"\"/usr/include/stdio.h\"",
+        TokenKind::Header,
+        super::header,
+    );
+}
+
+#[test]
+#[should_panic]
+fn header_h_chars_with_quote() {
+    tokenize_one(b"<hello\".h>", TokenKind::Header, super::header);
+}
+
+#[test]
+#[should_panic]
+fn header_h_chars_with_comment() {
+    tokenize_one(b"<hello /* world */ .h>", TokenKind::Header, super::header);
+}
+
+#[test]
+#[should_panic]
+fn header_q_chars_with_comment() {
+    tokenize_one(b"\"hello.h //\"", TokenKind::Header, super::header);
+}
+
+#[test]
+#[should_panic]
+fn header_h_chars_mismatch() {
+    tokenize_one(b"<hello.h", TokenKind::Header, super::header);
+}
+
+#[test]
+#[should_panic]
+fn header_q_chars_mismatch() {
+    tokenize_one(b"\"hello.h", TokenKind::Header, super::header);
 }
 
 #[test]

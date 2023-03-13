@@ -9,7 +9,7 @@ mod buffer;
 mod lexer;
 mod span;
 
-use std::{path::Path, io};
+use std::{io, path::Path};
 
 use span::SourceMap;
 

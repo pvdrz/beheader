@@ -94,7 +94,9 @@ struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     fn next_token(self) -> Result<'a, Token> {
-        let (rest, token) = if let Ok((rest, ident)) = ident(self) {
+        let (rest, token) = if let Ok((rest, header)) = header(self) {
+            (rest, header)
+        } else if let Ok((rest, ident)) = ident(self) {
             (rest, ident)
         } else if let Ok((rest, number)) = number(self) {
             (rest, number)
@@ -185,7 +187,48 @@ impl<F: Fn(u8) -> bool> BytePattern for F {
 
 /// Produce a `header-name` as defined in section 6.4.7 of C17.
 fn header(input: Lexer<'_>) -> Result<'_, Token> {
-    todo!()
+    if let Ok(rest) = h_header(input) {
+        Ok(rest)
+    } else {
+        q_header(input)
+    }
+}
+
+/// Produce an `<h-char-sequence>` as defined in section 6.4.7 of C17.
+fn h_header(input: Lexer<'_>) -> Result<'_, Token> {
+    // It has to start with a `<`.
+    let rest = input.parse_byte(b'<')?;
+
+    let mut bytes = rest.bytes().enumerate().peekable();
+
+    // Now we try to parse a `q-char-sequence`.
+    while let Some((i, byte)) = bytes.next() {
+        match byte {
+            // new-line characters are not valid `h-char`s
+            // FIXME: what about `\r`?
+            b'\n' => {}
+            // if we find `’`, `\`, `"` ,`//`, or `/*`, the behavior is undefined. We will
+            // reject.
+            b'\'' | b'\\' | b'"' => {}
+            b'/' if matches!(bytes.peek(), Some(&(_, b'/' | b'*'))) => {}
+            // if we find `>` then we are done
+            b'>' => {
+                let len = i + 2;
+                return Ok((
+                    input.advance(len),
+                    Token {
+                        kind: TokenKind::Header,
+                        span: input.get_span(len),
+                    },
+                ));
+            }
+            // any other character is a valid `h-char`
+            _ => continue,
+        }
+        break;
+    }
+
+    Err(Reject)
 }
 
 /// Produce a `"q-char-sequence"` as defined in section 6.4.7 of C17.
@@ -201,7 +244,7 @@ fn q_header(input: Lexer<'_>) -> Result<'_, Token> {
             // new-line characters are not valid `q-char`s
             // FIXME: what about `\r`?
             b'\n' => {}
-            // if we find `’`, `\` , `/`, `//` , or `/*`, the behavior is undefined. We will
+            // if we find `’`, `\`, `//`, or `/*`, the behavior is undefined. We will
             // reject.
             b'\'' | b'\\' => {}
             b'/' if matches!(bytes.peek(), Some(&(_, b'/' | b'*'))) => {}
@@ -222,7 +265,7 @@ fn q_header(input: Lexer<'_>) -> Result<'_, Token> {
         break;
     }
 
-    return Err(Reject);
+    Err(Reject)
 }
 
 /// Produce an `identifier` as defined in section 6.4.2 of C17.
